@@ -6,7 +6,7 @@ Yet another playground for testing <ins>Python</ins> flavoured regular expressio
 
 Hover over matches/groups to identify their indexes (TODO keyboard navigation).
 
-Edit the sample config file to suit, e.g. highlighting colours.
+Edit the sample [config](./regexpy.conf) file to suit, e.g. highlighting colours.
 
 Last saved regex, last loaded/saved sample and flags are reloaded on restart.
 
