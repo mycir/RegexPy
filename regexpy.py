@@ -300,7 +300,7 @@ class RegexPy(QWidget):
                 for o in flags:
                     if o in checks:
                         checks[o].setChecked(cp.getboolean("Flags", o))
-            if cp.has_section("RegexFile"):
+            if cp.has_option("RegexFile", "filename"):
                 fn = cp.get("RegexFile", "filename")
                 if fn:
                     try:
@@ -308,7 +308,7 @@ class RegexPy(QWidget):
                         self.validate()
                     except Exception:
                         print_exc
-            if cp.has_section("SampleFile"):
+            if cp.has_option("SampleFile", "filename"):
                 fn = cp.get("SampleFile", "filename")
                 if fn:
                     try:
@@ -554,12 +554,11 @@ class RegexPy(QWidget):
     def test_pattern(self):
         self.clear_formatting()
         self.ui.labelMatchesCount.setText("0")
-        t = self.ui.plainTextEditSample.toPlainText()
         self.pattern = re.compile(
             self.ui.plainTextEditRegex.toPlainText(),
             self.get_flags(),
         )
-        res = self.pattern.finditer(t)
+        res = self.pattern.finditer(self.ui.plainTextEditSample.toPlainText())
         matches = []
         for m in res:
             groups = []
