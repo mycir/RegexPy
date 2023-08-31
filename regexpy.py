@@ -267,7 +267,7 @@ class RegexPy(QWidget):
         buttons_layout.addWidget(
             hamburger_btn, 0, Qt.AlignRight | Qt.AlignVCenter
         )
-        
+
     def set_skeleton_config(self, configparser):
         if not configparser.has_section("Flags"):
             configparser.add_section("Flags")
@@ -275,7 +275,7 @@ class RegexPy(QWidget):
             configparser.add_section("RegexFile")
         if not configparser.has_section("SampleFile"):
             configparser.add_section("SampleFile")
-        
+
     def load_config(self):
         cp = configparser.ConfigParser(interpolation=None)
         cp.optionxform = str
@@ -317,7 +317,7 @@ class RegexPy(QWidget):
                         print_exc()
         except Exception:
             print_exc()
-            
+
     def load_file(self, filename=None, widget=None):
         if not filename:
             if self.sender().text() == "Load sample":
@@ -370,7 +370,7 @@ class RegexPy(QWidget):
             with open(fn, mode="w") as f:
                 f.write(self.ui.plainTextEditSample.toPlainText())
             self.configparser.set('SampleFile', 'filename', fn)
-            
+
     def closeEvent(self, event):
         dir = os.path.realpath(os.path.dirname(__file__))
         self.save_flags()
@@ -421,7 +421,7 @@ class RegexPy(QWidget):
         edit = self.ui.plainTextEditSample
         cursor = edit.textCursor()
         cursor.setPosition(pos, QTextCursor.MoveMode.MoveAnchor)
-        edit.setTextCursor(cursor)     
+        edit.setTextCursor(cursor)
 
     def clear_formatting(self, save_cursor=True):
         cursor = self.ui.plainTextEditSample.textCursor()
@@ -542,7 +542,7 @@ class RegexPy(QWidget):
                             self.ui.labelGroupsIndex.hide()
                             self.clear_regex_selection()
         return False
-    
+
     def jiggle_position(self, widget, pos, direction):
         # called several times, scrolls pos into view
         cursor = widget.textCursor()
@@ -571,7 +571,7 @@ class RegexPy(QWidget):
         self.colour_matches(matches)
         pos = matches[0][0][0]
         self.jiggle_position(self.ui.plainTextEditSample, pos, QTextCursor.Up)
-        self.jiggle_position(self.ui.plainTextEditSample, pos, QTextCursor.Down)     
+        self.jiggle_position(self.ui.plainTextEditSample, pos, QTextCursor.Down)
         self.ui.labelMatchesCount.setText(str(len(matches)))
         self.matches = matches
 
@@ -583,7 +583,7 @@ class RegexPy(QWidget):
             self.menu.actions()[4].setEnabled(True)
         else:
             self.menu.actions()[4].setEnabled(False)
-            
+
 
 if __name__ == "__main__":
     app = QApplication()
