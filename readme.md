@@ -4,13 +4,20 @@ Yet another playground for testing <ins>Python</ins> flavoured regular expressio
 
 ![Screenshot](./screenshots/regexpy.gif)
 
-Hover over matches/groups to identify their indexes (TODO keyboard navigation).
+Hover over matches/groups to identify their indexes.
+
+Alt+Right:&emsp;Next Match<br/>
+Alt+Left:&emsp;&ensp;&nbsp;Previous Match<br/>
+Ctrl+Alt+Right:&emsp;Next Group<br/>
+Ctrl+Alt+Left:&emsp;&ensp;&nbsp;Previous Group<br/>
+
+Tab/Shift+Tab move focus - to enter a tab character use Ctrl+Tab.
 
 Edit the sample [config](./regexpy.conf) file to suit, e.g. highlighting colours.
 
 Last saved regex, last loaded/saved sample and flags are reloaded on restart.
 
-Tab/Shift+Tab move focus - to enter a tab character use Ctrl+Tab.
+TODO custom undo stack to preserve undos/redos before navigation. 
 
 ## Dependencies
 

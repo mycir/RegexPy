@@ -2,6 +2,7 @@ import configparser
 import os
 import re
 from dataclasses import dataclass
+from enum import auto
 from time import strftime
 from traceback import print_exc
 
@@ -14,7 +15,13 @@ from PySide6.QtCore import (
     Qt,
     QTextStream,
 )
-from PySide6.QtGui import QColor, QKeyEvent, QTextCharFormat, QTextCursor
+from PySide6.QtGui import (
+    QColor,
+    QKeyEvent,
+    QShortcut,
+    QTextCharFormat,
+    QTextCursor,
+)
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QApplication,
@@ -85,6 +92,13 @@ class SvgButton(QToolButton):
         p = QPoint(s[0] - self.width(), s[1] + 5)
         pos -= p
         self.menu().popup(pos)
+
+
+class Move(auto):
+    NextMatch = auto()
+    PreviousMatch = auto()
+    NextGroup = auto()
+    PreviousGroup = auto()
 
 
 class Expression:
@@ -161,15 +175,15 @@ class RegexPy(QWidget):
         self.ui.splitter.setCollapsible(0, False)
         self.ui.splitter.setCollapsible(1, False)
         self.ui.splitter.setCollapsible(2, False)
-        self.ui.labelMatch.hide()
-        self.ui.labelGroups.hide()
-        self.ui.labelGroupsIndex.hide()
+        self.set_labels_visible(False)
         self.add_buttons()
-        self.ui.checkBoxAscii.clicked.connect(self.clear_formatting)
-        self.ui.checkBoxIgnoreCase.clicked.connect(self.clear_formatting)
-        self.ui.checkBoxMultiline.clicked.connect(self.clear_formatting)
-        self.ui.checkBoxDotAll.clicked.connect(self.clear_formatting)
-        self.ui.checkBoxVerbose.clicked.connect(self.clear_formatting)
+        self.shortcuts = []
+        self.add_shortcuts()
+        self.ui.checkBoxAscii.clicked.connect(self.on_checkbox_clicked)
+        self.ui.checkBoxIgnoreCase.clicked.connect(self.on_checkbox_clicked)
+        self.ui.checkBoxMultiline.clicked.connect(self.on_checkbox_clicked)
+        self.ui.checkBoxDotAll.clicked.connect(self.on_checkbox_clicked)
+        self.ui.checkBoxVerbose.clicked.connect(self.on_checkbox_clicked)
         self.ui.plainTextEditRegex.document().contentsChange.connect(
             self.validate
         )
@@ -181,9 +195,18 @@ class RegexPy(QWidget):
         )
         self.ui.plainTextEditRegex.installEventFilter(self)
         self.ui.plainTextEditSample.installEventFilter(self)
+        self.ui.plainTextEditSample.viewport().installEventFilter(self)
+        self.navigation_enabled = False
         self.load_config()
         if self.ui.plainTextEditRegex.toPlainText() > "":
             self.validate()
+
+    def set_labels_visible(self, visible=True):
+        self.ui.labelMatches.setVisible(visible)
+        self.ui.labelMatchesCount.setVisible(visible)
+        self.ui.labelMatch.setVisible(visible)
+        self.ui.labelGroups.setVisible(visible)
+        self.ui.labelGroupsIndex.setVisible(visible)
 
     def get_icon_colour(self):
         button = QToolButton()
@@ -251,6 +274,8 @@ class RegexPy(QWidget):
         search_btn.setToolTip("Search sample text for RE matches")
         search_btn.setShortcut("Ctrl+T")
         search_btn.clicked.connect(self.test_pattern)
+        search_btn.setEnabled(False)
+        self.search_button = search_btn
         buttons_layout.addWidget(search_btn, 0, Qt.AlignRight | Qt.AlignVCenter)
         hamburger_btn = SvgButton(svg_hamburger)
         hamburger_btn.setToolTip("Menu: Load sample, load RE")
@@ -267,6 +292,34 @@ class RegexPy(QWidget):
         buttons_layout.addWidget(
             hamburger_btn, 0, Qt.AlignRight | Qt.AlignVCenter
         )
+
+    def add_shortcuts(self):
+        self.shortcuts = [
+            QShortcut(
+                "Alt+Left",
+                self,
+                lambda: self.navigate(Move.PreviousMatch),
+                Qt.ShortcutContext.WindowShortcut,
+            ),
+            QShortcut(
+                "Alt+Right",
+                self,
+                lambda: self.navigate(Move.NextMatch),
+                Qt.ShortcutContext.WindowShortcut,
+            ),
+            QShortcut(
+                "Ctrl+Alt+Left",
+                self,
+                lambda: self.navigate(Move.PreviousGroup),
+                Qt.ShortcutContext.WindowShortcut,
+            ),
+            QShortcut(
+                "Ctrl+Alt+Right",
+                self,
+                lambda: self.navigate(Move.NextGroup),
+                Qt.ShortcutContext.WindowShortcut,
+            ),
+        ]
 
     def set_skeleton_config(self, configparser):
         if not configparser.has_section("Flags"):
@@ -335,9 +388,9 @@ class RegexPy(QWidget):
             else:
                 filename = fd.selectedFiles()[0]
                 if type == "sample":
-                    self.configparser.set('SampleFile', 'filename', filename)
+                    self.configparser.set("SampleFile", "filename", filename)
                 elif type == "regex":
-                    self.configparser.set('RegexFile', 'filename', filename)
+                    self.configparser.set("RegexFile", "filename", filename)
         f = QFile(filename)
         if f.open(QFile.OpenModeFlag.ReadOnly):
             # 'QTextStream is locale aware, and will automatically
@@ -359,22 +412,48 @@ class RegexPy(QWidget):
         if fn > "":
             with open(fn, mode="w") as f:
                 f.write(self.ui.plainTextEditRegex.toPlainText())
-            self.configparser.set('RegexFile', 'filename', fn)
+            self.configparser.set("RegexFile", "filename", fn)
 
     def save_sample(self):
         name = strftime("sample_%Y%m%d_%H%M%S.txt")
-        fn = QFileDialog.getSaveFileName(
-            self, "RegexPy - save sample", name
-        )[0]
+        fn = QFileDialog.getSaveFileName(self, "RegexPy - save sample", name)[0]
         if fn > "":
             with open(fn, mode="w") as f:
                 f.write(self.ui.plainTextEditSample.toPlainText())
-            self.configparser.set('SampleFile', 'filename', fn)
+            self.configparser.set("SampleFile", "filename", fn)
 
     def closeEvent(self, event):
         dir = os.path.realpath(os.path.dirname(__file__))
         self.save_flags()
         self.configparser.write(open(f"{dir}/regexpy.conf", mode="w"))
+
+    def enable_navigation(self, enabled=False):
+        if enabled:
+            self.navigation_enabled = True
+            self.sample_cursor_pos = (
+                self.ui.plainTextEditSample.textCursor().position()
+            )
+            self.sample_scroll_pos = (
+                self.ui.plainTextEditSample.verticalScrollBar().sliderPosition()
+            )
+            self.ui.plainTextEditSample.setReadOnly(True)
+            self.ui.plainTextEditSample.verticalScrollBar().setSliderPosition(0)
+            app.processEvents()
+            self.navigate(Move.NextMatch)
+            self.ui.plainTextEditSample.viewport().setCursor(Qt.CrossCursor)
+        else:
+            self.navigation_enabled = False
+            self.clear_regex_selection()
+            self.clear_formatting()
+            self.ui.plainTextEditSample.viewport().setCursor(Qt.IBeamCursor)
+            self.ui.plainTextEditSample.setReadOnly(False)
+            self.set_position(pos=self.sample_cursor_pos)
+            self.ui.plainTextEditSample.verticalScrollBar().setSliderPosition(
+                self.sample_scroll_pos
+            )
+            self.set_labels_visible(False)
+        for s in self.shortcuts:
+            s.setEnabled(enabled)
 
     def validate(self):
         p = self.ui.plainTextEditRegex.toPlainText()
@@ -391,14 +470,17 @@ class RegexPy(QWidget):
                 self.ui.plainTextEditRegex, self.colours.regex_valid
             )
             self.expression = Expression(self.pattern)
-            self.clear_formatting()
-            self.ui.labelMatchesCount.setText("0")
             self.menu.actions()[3].setEnabled(True)
+            self.search_button.setEnabled(True)
         else:
             self.colour_text(
                 self.ui.plainTextEditRegex, self.colours.regex_invalid
             )
             self.menu.actions()[3].setEnabled(False)
+            self.search_button.setEnabled(False)
+        if self.navigation_enabled:
+            self.enable_navigation(False)
+        self.set_labels_visible(False)
 
     def get_flags(self):
         flags = 0
@@ -415,28 +497,22 @@ class RegexPy(QWidget):
             opt = self.option_flags[on].name.lower()
             if not self.configparser.has_section("Flags"):
                 self.configparser.add_section("Flags")
-            self.configparser.set('Flags', opt, str(int(cb.isChecked())))
+            self.configparser.set("Flags", opt, str(int(cb.isChecked())))
 
-    def set_position(self, edit, pos=0):
-        edit = self.ui.plainTextEditSample
+    def set_position(self, edit=None, pos=0):
+        if edit is None:
+            edit = self.ui.plainTextEditSample
         cursor = edit.textCursor()
         cursor.setPosition(pos, QTextCursor.MoveMode.MoveAnchor)
         edit.setTextCursor(cursor)
 
     def clear_formatting(self, save_cursor=True):
         cursor = self.ui.plainTextEditSample.textCursor()
-        pos = cursor.position()
         cursor.select(QTextCursor.Document)
         cf = QTextCharFormat()
         cursor.setCharFormat(cf)
         cursor.clearSelection()
-        if save_cursor:
-            cursor.setPosition(pos, QTextCursor.MoveMode.MoveAnchor)
-        self.ui.plainTextEditSample.setTextCursor(cursor)
-        self.ui.labelMatchesCount.setText("0")
-        self.ui.labelMatch.hide()
-        self.ui.labelGroups.hide()
-        self.ui.labelGroupsIndex.hide()
+        self.ui.plainTextEditSample.document().clearUndoRedoStacks()
 
     def clear_regex_selection(self):
         tc = self.ui.plainTextEditRegex.textCursor()
@@ -515,6 +591,11 @@ class RegexPy(QWidget):
                 ):
                     widget.insertPlainText("\t")
                     return True
+                elif (
+                    event.key() == Qt.Key_Escape
+                    and widget is self.ui.plainTextEditSample
+                ):
+                    self.enable_navigation(False)
         elif widget is self.ui.plainTextEditSample:
             if event.type() is QEvent.ToolTip:
                 cfp = self.ui.plainTextEditSample.cursorForPosition(event.pos())
@@ -541,6 +622,11 @@ class RegexPy(QWidget):
                             self.ui.labelGroups.hide()
                             self.ui.labelGroupsIndex.hide()
                             self.clear_regex_selection()
+        elif widget is self.ui.plainTextEditSample.viewport():
+            if event.type() is QEvent.MouseButtonPress:
+                if self.navigation_enabled:
+                    self.enable_navigation(False)
+                    return True
         return False
 
     def jiggle_position(self, widget, pos, direction):
@@ -552,8 +638,6 @@ class RegexPy(QWidget):
         widget.ensureCursorVisible()
 
     def test_pattern(self):
-        self.clear_formatting()
-        self.ui.labelMatchesCount.setText("0")
         self.pattern = re.compile(
             self.ui.plainTextEditRegex.toPlainText(),
             self.get_flags(),
@@ -567,12 +651,81 @@ class RegexPy(QWidget):
             for i in range(1, g_len + 1):
                 groups.append([m.span(i), i])
             matches.append([span, groups])
-        self.colour_matches(matches)
-        pos = matches[0][0][0]
-        self.jiggle_position(self.ui.plainTextEditSample, pos, QTextCursor.Up)
-        self.jiggle_position(self.ui.plainTextEditSample, pos, QTextCursor.Down)
+        if len(matches) > 0:
+            self.matches = matches
+            self.current_match = -1
+            self.current_group = -1
+            self.enable_navigation(True)
+            self.colour_matches(matches)
+            pos = matches[0][0][0]
+            self.jiggle_position(
+                self.ui.plainTextEditSample, pos, QTextCursor.Up
+            )
+            self.jiggle_position(
+                self.ui.plainTextEditSample, pos, QTextCursor.Down
+            )
+        self.ui.labelMatches.show()
         self.ui.labelMatchesCount.setText(str(len(matches)))
-        self.matches = matches
+        self.ui.labelMatchesCount.show()
+
+    def navigate(self, move):
+        if move is Move.NextMatch:
+            if self.current_match >= len(self.matches) - 1:
+                return
+            self.current_match += 1
+            self.current_group = -1
+        elif move is Move.PreviousMatch:
+            if self.current_match <= 0:
+                return
+            self.current_match -= 1
+            self.current_group = -1
+        elif move is Move.NextGroup:
+            if self.current_match < 0:
+                self.current_match += 1
+                self.current_group = 0
+            elif self.current_group >= len(self.expression.capturing) - 1:
+                if self.current_match >= len(self.matches) - 1:
+                    return
+                self.current_match += 1
+                self.current_group = 0
+            else:
+                self.current_group += 1
+        elif move is Move.PreviousGroup:
+            if self.current_group <= 0:
+                if self.current_match <= 0:
+                    return
+                self.current_match -= 1
+                self.current_group = len(self.expression.capturing) - 1
+            else:
+                self.current_group -= 1
+        self.annotate_match(move)
+
+    def annotate_match(self, move):
+        match = self.matches[self.current_match]
+        if self.current_group < 0:
+            self.set_position(pos=match[0][0])
+            self.ui.labelMatch.setText(f"[{self.current_match + 1}]")
+            self.ui.labelMatch.show()
+            self.ui.labelGroups.hide()
+            self.ui.labelGroupsIndex.hide()
+            self.clear_regex_selection()
+        else:
+            g = match[1][self.current_group]
+            if g[0][0] == g[0][1]:
+                self.navigate(move)
+                return
+            p = g[0][0]
+            self.set_position(pos=p)
+            self.ui.labelMatch.setText(f"[{self.current_match + 1}]")
+            self.ui.labelMatch.show()
+            self.ui.labelGroups.show()
+            self.ui.labelGroupsIndex.setText(f"{self.current_group + 1}")
+            self.ui.labelGroupsIndex.show()
+            cap = self.expression.capturing[self.current_group]
+            self.select_group(cap)
+        cr = self.ui.plainTextEditSample.cursorRect()
+        pos = self.ui.plainTextEditSample.mapToGlobal(cr.center())
+        self.ui.plainTextEditSample.viewport().cursor().setPos(pos)
 
     def on_sample_changed(self, _, removed, added):
         if added != removed or self.sample_selection:
@@ -580,8 +733,14 @@ class RegexPy(QWidget):
         self.sample_selection = False
         if self.ui.plainTextEditSample.toPlainText() > "":
             self.menu.actions()[4].setEnabled(True)
+            self.search_button.setEnabled(True)
         else:
             self.menu.actions()[4].setEnabled(False)
+            self.search_button.setEnabled(False)
+
+    def on_checkbox_clicked(self):
+        if self.navigation_enabled:
+            self.enable_navigation(False)
 
 
 if __name__ == "__main__":
