@@ -440,7 +440,6 @@ class RegexPy(QWidget):
             )
             self.ui.plainTextEditSample.setReadOnly(True)
             self.ui.plainTextEditSample.verticalScrollBar().setSliderPosition(0)
-            app.processEvents()
             self.navigate(Move.NextMatch)
             self.ui.plainTextEditSample.viewport().setCursor(Qt.CrossCursor)
         else:
