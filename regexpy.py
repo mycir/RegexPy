@@ -320,6 +320,8 @@ class RegexPy(QWidget):
                 Qt.ShortcutContext.WindowShortcut,
             ),
         ]
+        for s in self.shortcuts:
+            s.setEnabled(False)
 
     def set_skeleton_config(self, configparser):
         if not configparser.has_section("Flags"):
@@ -629,14 +631,6 @@ class RegexPy(QWidget):
                     return True
         return False
 
-    def jiggle_position(self, widget, pos, direction):
-        # called several times, scrolls pos into view
-        cursor = widget.textCursor()
-        cursor.setPosition(pos)
-        cursor.movePosition(direction, QTextCursor.MoveAnchor, 15)
-        widget.setTextCursor(cursor)
-        widget.ensureCursorVisible()
-
     def test_pattern(self):
         self.pattern = re.compile(
             self.ui.plainTextEditRegex.toPlainText(),
@@ -658,15 +652,35 @@ class RegexPy(QWidget):
             self.enable_navigation(True)
             self.colour_matches(matches)
             pos = matches[0][0][0]
-            self.jiggle_position(
-                self.ui.plainTextEditSample, pos, QTextCursor.Up
-            )
-            self.jiggle_position(
-                self.ui.plainTextEditSample, pos, QTextCursor.Down
-            )
+            self.scroll_to_pos(pos, Move.NextMatch)
         self.ui.labelMatches.show()
         self.ui.labelMatchesCount.setText(str(len(matches)))
         self.ui.labelMatchesCount.show()
+
+    def scroll_to_pos(self, pos, move):
+        self.set_position(pos=pos)
+        if move in (Move.NextMatch, Move.NextGroup):
+            first = QTextCursor.Down
+            second = QTextCursor.Up
+        else:
+            first = QTextCursor.Up
+            second = QTextCursor.Down
+        self.jiggle_position(
+            self.ui.plainTextEditSample, first
+        )
+        self.jiggle_position(
+            self.ui.plainTextEditSample, second
+        )
+        self.set_position(pos=pos)
+        cr = self.ui.plainTextEditSample.cursorRect()
+        p = self.ui.plainTextEditSample.mapToGlobal(cr.center())
+        self.ui.plainTextEditSample.viewport().cursor().setPos(p)
+
+    def jiggle_position(self, widget, direction):
+        cursor = widget.textCursor()
+        cursor.movePosition(direction, QTextCursor.MoveAnchor, 10)
+        widget.setTextCursor(cursor)
+        widget.ensureCursorVisible()
 
     def navigate(self, move):
         if move is Move.NextMatch:
@@ -703,7 +717,7 @@ class RegexPy(QWidget):
     def annotate_match(self, move):
         match = self.matches[self.current_match]
         if self.current_group < 0:
-            self.set_position(pos=match[0][0])
+            pos = match[0][0]
             self.ui.labelMatch.setText(f"[{self.current_match + 1}]")
             self.ui.labelMatch.show()
             self.ui.labelGroups.hide()
@@ -714,18 +728,16 @@ class RegexPy(QWidget):
             if g[0][0] == g[0][1]:
                 self.navigate(move)
                 return
-            p = g[0][0]
-            self.set_position(pos=p)
+            pos = g[0][0]
             self.ui.labelMatch.setText(f"[{self.current_match + 1}]")
             self.ui.labelMatch.show()
             self.ui.labelGroups.show()
-            self.ui.labelGroupsIndex.setText(f"{self.current_group + 1}")
-            self.ui.labelGroupsIndex.show()
             cap = self.expression.capturing[self.current_group]
-            self.select_group(cap)
-        cr = self.ui.plainTextEditSample.cursorRect()
-        pos = self.ui.plainTextEditSample.mapToGlobal(cr.center())
-        self.ui.plainTextEditSample.viewport().cursor().setPos(pos)
+            self.ui.labelGroupsIndex.setText(
+                cap.name if cap.name else str(self.current_group + 1)
+            )
+            self.ui.labelGroupsIndex.show()
+        self.scroll_to_pos(pos, move)
 
     def on_sample_changed(self, _, removed, added):
         if added != removed or self.sample_selection:
