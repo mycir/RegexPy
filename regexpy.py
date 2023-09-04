@@ -736,6 +736,7 @@ class RegexPy(QWidget):
                 cap.name if cap.name else str(self.current_group + 1)
             )
             self.ui.labelGroupsIndex.show()
+            self.select_group(cap)
         self.scroll_to_pos(pos, move)
 
     def on_sample_changed(self, _, removed, added):
