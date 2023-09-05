@@ -6,6 +6,8 @@ Yet another playground for testing <ins>Python</ins> flavoured regular expressio
 
 Hover over matches/groups to identify their indexes.
 
+Ctrl + T/Search button tests the regular expression on sample text. 
+
 Alt+Right:&emsp;Next Match<br/>
 Alt+Left:&emsp;&ensp;&nbsp;Previous Match<br/>
 Ctrl+Alt+Right:&emsp;Next Group<br/>
