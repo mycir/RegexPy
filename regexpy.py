@@ -3,6 +3,7 @@
 import configparser
 import os
 import re
+from collections import namedtuple
 from dataclasses import dataclass
 from enum import auto
 from time import strftime
@@ -159,6 +160,9 @@ class Expression:
 
 
 class RegexPy(QWidget):
+    RegexMatch = namedtuple("RegexMatch", "start end groups")
+    Group = namedtuple("Group", "start end index")
+
     colours = Colours()
     option_flags = {
         "checkBoxAscii": re.ASCII,
@@ -522,18 +526,20 @@ class RegexPy(QWidget):
         tc.clearSelection()
         self.ui.plainTextEditRegex.setTextCursor(tc)
 
-    def colour_text(self, edit, foreground, background=None, span=None):
+    def colour_text(
+        self, edit, foreground, background=None, start=None, end=None
+    ):
         cursor = edit.textCursor()
         cf = QTextCharFormat()
         cf.setForeground(foreground)
-        if span:
-            cursor.setPosition(span[0], QTextCursor.MoveMode.MoveAnchor)
+        if start:
+            cursor.setPosition(start, QTextCursor.MoveMode.MoveAnchor)
             bgc = cursor.charFormat().background().color()
             if background:
                 if bgc == background:
                     background = background.darker(150)
                 cf.setBackground(background)
-            cursor.setPosition(span[1], QTextCursor.MoveMode.KeepAnchor)
+            cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
         else:
             cursor.select(QTextCursor.Document)
             cursor.setCharFormat(cf)
@@ -546,33 +552,32 @@ class RegexPy(QWidget):
                 self.ui.plainTextEditSample,
                 self.colours.match_foreground,
                 self.colours.match_background,
-                m[0],
+                m.start,
+                m.end,
             )
             gbc = self.colours.group_background
-            for g in m[1]:
-                if g[0][1] - g[0][0] > 0:
+            for g in m.groups:
+                if g.end > g.start:
                     self.colour_text(
                         self.ui.plainTextEditSample,
                         self.colours.group_foreground,
                         gbc,
-                        g[0],
+                        g.start,
+                        g.end,
                     )
 
     def find_match(self, p):
         gi = -1
         for mi, m in enumerate(self.matches):
-            len_groups = len(m[1])
-            if len_groups:
-                for i in range(len_groups - 1, -1, -1):
-                    g = m[1][i]
-                    start = g[0][0]
-                    end = g[0][1]
-                    if start == end:
+            if len(m.groups):
+                for i in range(len(m.groups) - 1, -1, -1):
+                    g = m.groups[i]
+                    if g.start == g.end:
                         continue
-                    elif p > start and p <= end:
+                    elif p > g.start and p <= g.end:
                         gi = i
                         return (mi, gi)
-            if p >= m[0][0] and p <= m[0][1]:
+            if p >= m.start and p <= m.end:
                 return (mi, gi)
         return (-1, -1)
 
@@ -632,6 +637,13 @@ class RegexPy(QWidget):
                     return True
         return False
 
+    def matchmaker(self, match: re.Match):
+        groups = []
+        for i in range(1, len(match.groups()) + 1):
+            group = self.Group(match.start(i), match.end(i), i)
+            groups.append(group)
+        return self.RegexMatch(match.start(), match.end(), groups)
+
     def test_pattern(self):
         self.pattern = re.compile(
             self.ui.plainTextEditRegex.toPlainText(),
@@ -640,19 +652,14 @@ class RegexPy(QWidget):
         res = self.pattern.finditer(self.ui.plainTextEditSample.toPlainText())
         matches = []
         for m in res:
-            groups = []
-            span = m.span()
-            g_len = len(m.groups())
-            for i in range(1, g_len + 1):
-                groups.append([m.span(i), i])
-            matches.append([span, groups])
+            matches.append(self.matchmaker(m))
         if len(matches) > 0:
             self.matches = matches
             self.current_match = -1
             self.current_group = -1
             self.enable_navigation(True)
             self.colour_matches(matches)
-            pos = matches[0][0][0]
+            pos = matches[0].start
             self.scroll_to_pos(pos, Move.NextMatch)
         self.ui.labelMatches.show()
         self.ui.labelMatchesCount.setText(str(len(matches)))
@@ -666,12 +673,8 @@ class RegexPy(QWidget):
         else:
             first = QTextCursor.Up
             second = QTextCursor.Down
-        self.jiggle_position(
-            self.ui.plainTextEditSample, first
-        )
-        self.jiggle_position(
-            self.ui.plainTextEditSample, second
-        )
+        self.jiggle_position(self.ui.plainTextEditSample, first)
+        self.jiggle_position(self.ui.plainTextEditSample, second)
         self.set_position(pos=pos)
         cr = self.ui.plainTextEditSample.cursorRect()
         p = self.ui.plainTextEditSample.mapToGlobal(cr.center())
@@ -718,18 +721,18 @@ class RegexPy(QWidget):
     def annotate_match(self, move):
         match = self.matches[self.current_match]
         if self.current_group < 0:
-            pos = match[0][0]
+            pos = match.start
             self.ui.labelMatch.setText(f"[{self.current_match + 1}]")
             self.ui.labelMatch.show()
             self.ui.labelGroups.hide()
             self.ui.labelGroupsIndex.hide()
             self.clear_regex_selection()
         else:
-            g = match[1][self.current_group]
-            if g[0][0] == g[0][1]:
+            g = match.groups[self.current_group]
+            if g.start == g.end:
                 self.navigate(move)
                 return
-            pos = g[0][0]
+            pos = g.start
             self.ui.labelMatch.setText(f"[{self.current_match + 1}]")
             self.ui.labelMatch.show()
             self.ui.labelGroups.show()
