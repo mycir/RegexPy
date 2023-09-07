@@ -296,6 +296,7 @@ class RegexPy(QWidget):
         self.menu.addAction("Save RE", self.save_regex, "Ctrl+S")
         self.menu.addAction("Save sample", self.save_sample, "Ctrl+Shift+S")
         hamburger_btn.set_menu(self.menu)
+        self.hamburger_button = hamburger_btn
         buttons_layout.addWidget(
             hamburger_btn, 0, Qt.AlignRight | Qt.AlignVCenter
         )
@@ -454,6 +455,12 @@ class RegexPy(QWidget):
             self.ui.plainTextEditSample.viewport().setCursor(Qt.CrossCursor)
             self.ui.plainTextEditRegex.setReadOnly(True)
             self.ui.plainTextEditRegex.setContextMenuPolicy(Qt.NoContextMenu)
+            self.shortcuts[0].setEnabled(True)
+            self.shortcuts[1].setEnabled(True)
+            if len(self.expression.capturing):
+                self.shortcuts[2].setEnabled(True)
+                self.shortcuts[3].setEnabled(True)
+            self.hamburger_button.setEnabled(False)
         else:
             self.navigation_enabled = False
             self.clear_regex_selection()
@@ -469,8 +476,9 @@ class RegexPy(QWidget):
                 Qt.DefaultContextMenu
             )
             self.set_labels_visible(False)
-        for s in self.shortcuts:
-            s.setEnabled(enabled)
+            for s in self.shortcuts:
+                s.setEnabled(enabled)
+            self.hamburger_button.setEnabled(True)
 
     def validate(self):
         p = self.ui.plainTextEditRegex.toPlainText()
