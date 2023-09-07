@@ -447,7 +447,7 @@ class RegexPy(QWidget):
                 self.ui.plainTextEditSample.verticalScrollBar().sliderPosition()
             )
             nav_doc = self.ui.plainTextEditSample.document().clone()
-            nav_doc.setDocumentLayout(self.sample_doc.documentLayout())
+            nav_doc.setDocumentLayout(QPlainTextDocumentLayout(nav_doc))
             self.ui.plainTextEditSample.setDocument(nav_doc)
             self.ui.plainTextEditSample.setReadOnly(True)
             self.ui.plainTextEditSample.verticalScrollBar().setSliderPosition(0)
@@ -465,6 +465,7 @@ class RegexPy(QWidget):
             self.navigation_enabled = False
             self.clear_regex_selection()
             self.ui.plainTextEditSample.setDocument(self.sample_doc)
+            self.ui.plainTextEditSample.setCurrentCharFormat(QTextCharFormat())
             self.ui.plainTextEditSample.setReadOnly(False)
             self.ui.plainTextEditSample.viewport().setCursor(Qt.IBeamCursor)
             self.set_position(pos=self.sample_cursor_pos)
@@ -573,6 +574,7 @@ class RegexPy(QWidget):
                         g.start,
                         g.end,
                     )
+            app.processEvents()
 
     def find_match(self, p):
         gi = -1
@@ -675,17 +677,17 @@ class RegexPy(QWidget):
         matches = []
         for m in res:
             matches.append(self.matchmaker(m))
-        if len(matches) > 0:
-            self.matches = matches
-            self.current_match = -1
-            self.current_group = -1
-            self.enable_navigation(True)
-            self.colour_matches(matches)
-            pos = matches[0].start
-            self.scroll_to_pos(pos, Move.NextMatch)
+        self.matches = matches
         self.ui.labelMatches.show()
         self.ui.labelMatchesCount.setText(str(len(matches)))
         self.ui.labelMatchesCount.show()
+        if len(matches) > 0:
+            self.current_match = -1
+            self.current_group = -1
+            self.enable_navigation(True)
+            pos = matches[0].start
+            self.scroll_to_pos(pos, Move.NextMatch)
+            self.colour_matches(matches)
 
     def scroll_to_pos(self, pos, move):
         self.set_position(pos=pos)
@@ -739,6 +741,7 @@ class RegexPy(QWidget):
             else:
                 self.current_group -= 1
         self.annotate_match(move)
+        app.processEvents()
 
     def annotate_match(self, move):
         match = self.matches[self.current_match]
