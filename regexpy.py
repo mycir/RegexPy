@@ -541,18 +541,13 @@ class RegexPy(QWidget):
         cursor = edit.textCursor()
         cf = QTextCharFormat()
         cf.setForeground(foreground)
-        if start:
-            cursor.setPosition(start, QTextCursor.MoveMode.MoveAnchor)
-            bgc = cursor.charFormat().background().color()
-            if background:
-                if bgc == background:
-                    background = background.darker(150)
-                cf.setBackground(background)
-            cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
-        else:
-            cursor.select(QTextCursor.Document)
-            cursor.setCharFormat(cf)
-            cursor.clearSelection()
+        cursor.setPosition(start, QTextCursor.MoveMode.MoveAnchor)
+        bgc = cursor.charFormat().background().color()
+        if background:
+            if bgc == background:
+                background = background.darker(150)
+            cf.setBackground(background)
+        cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
         cursor.setCharFormat(cf)
 
     def colour_matches(self, matches):
@@ -564,13 +559,12 @@ class RegexPy(QWidget):
                 m.start,
                 m.end,
             )
-            gbc = self.colours.group_background
             for g in m.groups:
                 if g.end > g.start:
                     self.colour_text(
                         self.ui.plainTextEditSample,
                         self.colours.group_foreground,
-                        gbc,
+                        self.colours.group_background,
                         g.start,
                         g.end,
                     )
