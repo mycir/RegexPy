@@ -12,6 +12,7 @@ Alt+Right:&emsp;Next Match<br/>
 Alt+Left:&emsp;&ensp;&nbsp;Previous Match<br/>
 Ctrl+Alt+Right:&emsp;Next Group<br/>
 Ctrl+Alt+Left:&emsp;&ensp;&nbsp;Previous Group<br/>
+Alt+A:&emsp;&ensp;&nbsp;Return to anchor (after hovering over another match/group)<br/>
 
 Escape or mouse click exit navigation mode.
 

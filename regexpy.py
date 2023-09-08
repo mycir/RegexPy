@@ -104,6 +104,7 @@ class Move(auto):
     PreviousMatch = auto()
     NextGroup = auto()
     PreviousGroup = auto()
+    ToAnchor = auto()
 
 
 class Expression:
@@ -316,6 +317,12 @@ class RegexPy(QWidget):
                 Qt.ShortcutContext.WindowShortcut,
             ),
             QShortcut(
+                "Alt+A",
+                self,
+                lambda: self.navigate(Move.ToAnchor),
+                Qt.ShortcutContext.WindowShortcut,
+            ),
+            QShortcut(
                 "Ctrl+Alt+Left",
                 self,
                 lambda: self.navigate(Move.PreviousGroup),
@@ -457,9 +464,10 @@ class RegexPy(QWidget):
             self.ui.plainTextEditRegex.setContextMenuPolicy(Qt.NoContextMenu)
             self.shortcuts[0].setEnabled(True)
             self.shortcuts[1].setEnabled(True)
+            self.shortcuts[2].setEnabled(True)
             if len(self.expression.capturing):
-                self.shortcuts[2].setEnabled(True)
                 self.shortcuts[3].setEnabled(True)
+                self.shortcuts[4].setEnabled(True)
             self.hamburger_button.setEnabled(False)
         else:
             self.navigation_enabled = False
@@ -478,7 +486,7 @@ class RegexPy(QWidget):
             )
             self.set_labels_visible(False)
             for s in self.shortcuts:
-                s.setEnabled(enabled)
+                s.setEnabled(False)
             self.hamburger_button.setEnabled(True)
 
     def validate(self):
@@ -734,6 +742,8 @@ class RegexPy(QWidget):
                 self.current_group = len(self.expression.capturing) - 1
             else:
                 self.current_group -= 1
+        elif move is not Move.ToAnchor:
+            return
         self.annotate_match(move)
         app.processEvents()
 
