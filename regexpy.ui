@@ -107,6 +107,9 @@
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::MinimumExpanding</enum>
+       </property>
        <property name="sizeHint" stdset="0">
         <size>
          <width>40</width>
@@ -118,14 +121,14 @@
      <item>
       <widget class="QFrame" name="frameButtons">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+        <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="maximumSize">
         <size>
-         <width>100</width>
+         <width>120</width>
          <height>16777215</height>
         </size>
        </property>
@@ -249,7 +252,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QPlainTextEdit" name="plainTextEditSample">
+     <widget class="QTextEdit" name="textEditSample">
       <property name="minimumSize">
        <size>
         <width>0</width>
@@ -258,9 +261,6 @@
       </property>
       <property name="tabChangesFocus">
        <bool>true</bool>
-      </property>
-      <property name="readOnly">
-       <bool>false</bool>
       </property>
       <property name="placeholderText">
        <string>Enter or paste sample text here, or load from file</string>

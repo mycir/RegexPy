@@ -21,6 +21,8 @@ from PySide6.QtCore import (
 from PySide6.QtGui import (
     QColor,
     QKeyEvent,
+    QPainter,
+    QPen,
     QShortcut,
     QTextCharFormat,
     QTextCursor,
@@ -33,7 +35,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QMenu,
-    QPlainTextDocumentLayout,
+    QScrollBar,
     QToolButton,
     QWidget,
 )
@@ -187,11 +189,17 @@ class RegexPy(QWidget):
         self.add_buttons()
         self.shortcuts = []
         self.add_shortcuts()
-        self.sample_doc = QTextDocument(self.ui.plainTextEditSample)
-        dl = QPlainTextDocumentLayout(self.sample_doc)
-        self.sample_doc.setDocumentLayout(dl)
-        self.ui.plainTextEditSample.setDocument(self.sample_doc)
-        self.ui.plainTextEditSample.textChanged.connect(self.on_sample_changed)
+        # changed from QPlainTextEdit - the QPTE scrollbar
+        # behaves strangely - jitter until maximum is reached,
+        # maximum never stable, thumb position not proportional
+        # to wrapped line number/wrapped line count
+        vc = self.ui.textEditSample.findChild(
+            QWidget, "qt_scrollarea_vcontainer"
+        )
+        self.scrollbar = vc.findChild(QScrollBar)
+        self.sample_doc = QTextDocument(self.ui.textEditSample)
+        self.ui.textEditSample.setDocument(self.sample_doc)
+        self.ui.textEditSample.textChanged.connect(self.on_sample_changed)
         self.ui.plainTextEditRegex.document().contentsChange.connect(
             self.validate
         )
@@ -200,11 +208,13 @@ class RegexPy(QWidget):
         self.ui.checkBoxMultiline.clicked.connect(self.on_checkbox_clicked)
         self.ui.checkBoxDotAll.clicked.connect(self.on_checkbox_clicked)
         self.ui.checkBoxVerbose.clicked.connect(self.on_checkbox_clicked)
-        self.ui.plainTextEditSample.installEventFilter(self)
-        self.ui.plainTextEditSample.viewport().installEventFilter(self)
+        self.ui.textEditSample.installEventFilter(self)
+        self.ui.textEditSample.viewport().installEventFilter(self)
+        self.scrollbar.installEventFilter(self)
         self.ui.plainTextEditRegex.installEventFilter(self)
         self.ui.plainTextEditRegex.viewport().installEventFilter(self)
         self.navigation_enabled = False
+        self.markers_enabled = False
         self.load_config()
         if self.ui.plainTextEditRegex.toPlainText() > "":
             self.validate()
@@ -226,15 +236,16 @@ class RegexPy(QWidget):
         colour = img.pixelColor(cx, cy)
         colour_black = colour.blackF()
         if colour_black < 0.666:
-            return colour.darker(250).name()
+            c = colour.darker(250)
         else:
-            return colour.lighter(250).name()
+            c = colour.lighter(250)
+        return (c, c.name())
 
     def add_buttons(self):
         buttons_layout = QHBoxLayout(self.ui.frameButtons)
         buttons_layout.setSpacing(12)
         buttons_layout.setContentsMargins(0, 0, 0, 0)
-        icon_colour = self.get_icon_colour()
+        self.icon_colour, icon_colour = self.get_icon_colour()
         svg_flag = f"""
             <svg width="128" height="128"
             viewBox="0 0 128 128"><path style="fill:{icon_colour};"
@@ -258,6 +269,16 @@ class RegexPy(QWidget):
             stroke="{icon_colour}" stroke-width="10"/>
             <path d="M110 100L80 70" stroke="{icon_colour}" stroke-width="10"
             stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        """
+        svg_marker = f"""
+            <svg width="128" height="128" viewBox="0 0 128 128" fill="none">
+            <style>.strk{{fill:none;stroke:{icon_colour};stroke-width:8;
+            stroke-linecap:round;stroke-linejoin:round}}</style>
+            <path class="strk" d="M54.4,93.6L28,96l2.4-26.4L84.4,15.6C87.6,12.4,
+            92.8,12.8,96,16l12,12c3.2,3.2,3.6,8.4,0.4,11.6L54.4,93.6z"/>
+            <line class="strk" x1="76" y1="24" x2="100" y2="48"/>
+            <line class="strk" x1="16" y1="112" x2="112" y2="112"/>
             </svg>
         """
         svg_hamburger = f"""
@@ -285,6 +306,13 @@ class RegexPy(QWidget):
         search_btn.setEnabled(False)
         self.search_button = search_btn
         buttons_layout.addWidget(search_btn, 0, Qt.AlignRight | Qt.AlignVCenter)
+        marker_btn = SvgButton(svg_marker)
+        marker_btn.setToolTip("Show/hide scrollbar markers")
+        marker_btn.setShortcut("Ctrl+M")
+        marker_btn.clicked.connect(self.toggle_markers)
+        marker_btn.setEnabled(False)
+        self.marker_button = marker_btn
+        buttons_layout.addWidget(marker_btn, 0, Qt.AlignRight | Qt.AlignVCenter)
         hamburger_btn = SvgButton(svg_hamburger)
         hamburger_btn.setToolTip("Menu: Load sample, load RE")
         hamburger_btn.setStyleSheet(
@@ -382,7 +410,7 @@ class RegexPy(QWidget):
                 fn = cp.get("SampleFile", "filename")
                 if fn:
                     try:
-                        self.load_file(fn, self.ui.plainTextEditSample)
+                        self.load_file(fn, self.ui.textEditSample)
                     except Exception:
                         print_exc()
         except Exception:
@@ -391,7 +419,7 @@ class RegexPy(QWidget):
     def load_file(self, filename=None, widget=None):
         if not filename:
             if self.sender().text() == "Load sample":
-                widget = self.ui.plainTextEditSample
+                widget = self.ui.textEditSample
                 type = "sample"
             elif self.sender().text() == "Load RE":
                 widget = self.ui.plainTextEditRegex
@@ -436,7 +464,7 @@ class RegexPy(QWidget):
         fn = QFileDialog.getSaveFileName(self, "RegexPy - save sample", name)[0]
         if fn > "":
             with open(fn, mode="w") as f:
-                f.write(self.ui.plainTextEditSample.toPlainText())
+                f.write(self.ui.textEditSample.toPlainText())
             self.configparser.set("SampleFile", "filename", fn)
 
     def closeEvent(self, event):
@@ -448,20 +476,23 @@ class RegexPy(QWidget):
         if enabled:
             self.navigation_enabled = True
             self.sample_cursor_pos = (
-                self.ui.plainTextEditSample.textCursor().position()
+                self.ui.textEditSample.textCursor().position()
             )
             self.sample_scroll_pos = (
-                self.ui.plainTextEditSample.verticalScrollBar().sliderPosition()
+                self.ui.textEditSample.verticalScrollBar().sliderPosition()
             )
-            nav_doc = self.ui.plainTextEditSample.document().clone()
-            nav_doc.setDocumentLayout(QPlainTextDocumentLayout(nav_doc))
-            self.ui.plainTextEditSample.setDocument(nav_doc)
-            self.ui.plainTextEditSample.setReadOnly(True)
-            self.ui.plainTextEditSample.verticalScrollBar().setSliderPosition(0)
+            self.ui.textEditSample.setDocument(
+                self.ui.textEditSample.document().clone(self.ui.textEditSample)
+            )
+            self.lines = self.ui.textEditSample.document().lineCount()
+            self.ui.textEditSample.setReadOnly(True)
+            self.ui.textEditSample.verticalScrollBar().setSliderPosition(0)
             self.navigate(Move.NextMatch)
-            self.ui.plainTextEditSample.viewport().setCursor(Qt.CrossCursor)
+            self.ui.textEditSample.viewport().setCursor(Qt.CrossCursor)
             self.ui.plainTextEditRegex.setReadOnly(True)
             self.ui.plainTextEditRegex.setContextMenuPolicy(Qt.NoContextMenu)
+            self.search_button.setEnabled(False)
+            self.marker_button.setEnabled(True)
             self.shortcuts[0].setEnabled(True)
             self.shortcuts[1].setEnabled(True)
             self.shortcuts[2].setEnabled(True)
@@ -472,12 +503,12 @@ class RegexPy(QWidget):
         else:
             self.navigation_enabled = False
             self.clear_regex_selection()
-            self.ui.plainTextEditSample.setDocument(self.sample_doc)
-            self.ui.plainTextEditSample.setCurrentCharFormat(QTextCharFormat())
-            self.ui.plainTextEditSample.setReadOnly(False)
-            self.ui.plainTextEditSample.viewport().setCursor(Qt.IBeamCursor)
+            self.ui.textEditSample.setDocument(self.sample_doc)
+            self.ui.textEditSample.setCurrentCharFormat(QTextCharFormat())
+            self.ui.textEditSample.setReadOnly(False)
+            self.ui.textEditSample.viewport().setCursor(Qt.IBeamCursor)
             self.set_position(pos=self.sample_cursor_pos)
-            self.ui.plainTextEditSample.verticalScrollBar().setSliderPosition(
+            self.ui.textEditSample.verticalScrollBar().setSliderPosition(
                 self.sample_scroll_pos
             )
             self.ui.plainTextEditRegex.setReadOnly(False)
@@ -485,6 +516,10 @@ class RegexPy(QWidget):
                 Qt.DefaultContextMenu
             )
             self.set_labels_visible(False)
+            self.search_button.setEnabled(True)
+            self.marker_button.setEnabled(False)
+            self.markers_enabled = False
+            self.scrollbar.repaint()
             for s in self.shortcuts:
                 s.setEnabled(False)
             self.hamburger_button.setEnabled(True)
@@ -533,7 +568,7 @@ class RegexPy(QWidget):
 
     def set_position(self, edit=None, pos=0):
         if edit is None:
-            edit = self.ui.plainTextEditSample
+            edit = self.ui.textEditSample
         cursor = edit.textCursor()
         cursor.setPosition(pos, QTextCursor.MoveMode.MoveAnchor)
         edit.setTextCursor(cursor)
@@ -559,9 +594,10 @@ class RegexPy(QWidget):
         cursor.setCharFormat(cf)
 
     def colour_matches(self, matches):
+        self.match_lines = []
         for m in matches:
             self.colour_text(
-                self.ui.plainTextEditSample,
+                self.ui.textEditSample,
                 self.colours.match_foreground,
                 self.colours.match_background,
                 m.start,
@@ -570,13 +606,29 @@ class RegexPy(QWidget):
             for g in m.groups:
                 if g.end > g.start:
                     self.colour_text(
-                        self.ui.plainTextEditSample,
+                        self.ui.textEditSample,
                         self.colours.group_foreground,
                         self.colours.group_background,
                         g.start,
                         g.end,
                     )
             app.processEvents()
+            self.match_lines.append(self.get_line_at_position(m.start))
+
+    # https://stackoverflow.com/questions/15814776 thanks to Marek R
+    def get_line_at_position(self, pos):
+        cursor = self.ui.textEditSample.textCursor()
+        cursor.setPosition(pos)
+        cursor.movePosition(QTextCursor.StartOfLine)
+        lines = 1
+        while cursor.positionInBlock() > 0:
+            cursor.movePosition(QTextCursor.Up)
+            lines += 1
+        block = cursor.block().previous()
+        while block.isValid():
+            lines += block.lineCount()
+            block = block.previous()
+        return lines
 
     def find_match(self, p):
         gi = -1
@@ -607,25 +659,25 @@ class RegexPy(QWidget):
             ):
                 if widget in (
                     self.ui.plainTextEditRegex,
-                    self.ui.plainTextEditSample,
+                    self.ui.textEditSample,
                 ):
                     widget.insertPlainText("\t")
                     return True
             elif (
                 event.key() == Qt.Key_Escape
-                and widget is self.ui.plainTextEditSample
+                and widget is self.ui.textEditSample
             ):
                 self.enable_navigation(False)
             elif event.key() not in (Qt.Key_Tab, Qt.Key_Backtab):
                 if (
                     widget
-                    in (self.ui.plainTextEditSample, self.ui.plainTextEditRegex)
+                    in (self.ui.textEditSample, self.ui.plainTextEditRegex)
                     and widget.isReadOnly()
                 ):
                     return True
-        elif widget is self.ui.plainTextEditSample:
+        elif widget is self.ui.textEditSample:
             if event.type() is QEvent.ToolTip:
-                cfp = self.ui.plainTextEditSample.cursorForPosition(event.pos())
+                cfp = self.ui.textEditSample.cursorForPosition(event.pos())
                 bgc = cfp.charFormat().background().color()
                 if cfp.atEnd() or bgc.black() == 255:
                     self.ui.labelMatch.hide()
@@ -649,7 +701,7 @@ class RegexPy(QWidget):
                             self.ui.labelGroups.hide()
                             self.ui.labelGroupsIndex.hide()
                             self.clear_regex_selection()
-        elif widget is self.ui.plainTextEditSample.viewport():
+        elif widget is self.ui.textEditSample.viewport():
             if event.type() is QEvent.MouseButtonPress:
                 if self.navigation_enabled:
                     self.enable_navigation(False)
@@ -661,7 +713,31 @@ class RegexPy(QWidget):
                     QEvent.MouseButtonRelease,
                 ):
                     return True
+        elif widget is self.scrollbar:
+            if event.type() is QEvent.Paint:
+                widget.paintEvent(event)
+                if self.markers_enabled:
+                    self.draw_markers()
+                return True
         return False
+
+    def draw_markers(self):
+        qp = QPainter(self.scrollbar)
+        qp.setPen(QPen(Qt.NoPen))
+        qp.setBrush(self.icon_colour)
+        qp.setOpacity(0.25)
+        btn_h = self.scrollbar.width() + 4
+        for ml in self.match_lines:
+            f = ml / self.lines
+            trk_h = self.scrollbar.height() - (btn_h * 4)
+            trk_pos = trk_h * f
+            mw = round(self.scrollbar.width() / 3)
+            y = round(trk_pos + (btn_h * 2))
+            qp.drawRect(mw, y, mw, 3)
+
+    def toggle_markers(self):
+        self.markers_enabled = not self.markers_enabled
+        self.scrollbar.repaint()
 
     def matchmaker(self, match: re.Match):
         groups = []
@@ -675,7 +751,7 @@ class RegexPy(QWidget):
             self.ui.plainTextEditRegex.toPlainText(),
             self.get_flags(),
         )
-        res = self.pattern.finditer(self.ui.plainTextEditSample.toPlainText())
+        res = self.pattern.finditer(self.ui.textEditSample.toPlainText())
         matches = []
         for m in res:
             matches.append(self.matchmaker(m))
@@ -690,6 +766,9 @@ class RegexPy(QWidget):
             pos = matches[0].start
             self.scroll_to_pos(pos, Move.NextMatch)
             self.colour_matches(matches)
+            self.ui.textEditSample.setDocument(
+                self.ui.textEditSample.document()
+            )
 
     def scroll_to_pos(self, pos, move):
         self.set_position(pos=pos)
@@ -699,12 +778,12 @@ class RegexPy(QWidget):
         else:
             first = QTextCursor.Up
             second = QTextCursor.Down
-        self.jiggle_position(self.ui.plainTextEditSample, first)
-        self.jiggle_position(self.ui.plainTextEditSample, second)
+        self.jiggle_position(self.ui.textEditSample, first)
+        self.jiggle_position(self.ui.textEditSample, second)
         self.set_position(pos=pos)
-        cr = self.ui.plainTextEditSample.cursorRect()
-        p = self.ui.plainTextEditSample.mapToGlobal(cr.center())
-        self.ui.plainTextEditSample.viewport().cursor().setPos(p)
+        cr = self.ui.textEditSample.cursorRect()
+        p = self.ui.textEditSample.mapToGlobal(cr.center())
+        self.ui.textEditSample.viewport().cursor().setPos(p)
 
     def jiggle_position(self, widget, direction):
         cursor = widget.textCursor()
@@ -774,12 +853,13 @@ class RegexPy(QWidget):
         self.scroll_to_pos(pos, move)
 
     def on_sample_changed(self):
-        if self.ui.plainTextEditSample.toPlainText() > "":
-            self.menu.actions()[4].setEnabled(True)
-            self.search_button.setEnabled(True)
-        else:
-            self.menu.actions()[4].setEnabled(False)
-            self.search_button.setEnabled(False)
+        if not self.navigation_enabled:
+            if self.ui.textEditSample.toPlainText() > "":
+                self.menu.actions()[4].setEnabled(True)
+                self.search_button.setEnabled(True)
+            else:
+                self.menu.actions()[4].setEnabled(False)
+                self.search_button.setEnabled(False)
 
     def on_checkbox_clicked(self):
         if self.navigation_enabled:

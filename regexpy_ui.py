@@ -17,7 +17,7 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QFrame, QGridLayout,
     QHBoxLayout, QLabel, QPlainTextEdit, QSizePolicy,
-    QSpacerItem, QSplitter, QWidget)
+    QSpacerItem, QSplitter, QTextEdit, QWidget)
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -69,18 +69,18 @@ class Ui_Form(object):
 
         self.horizontalLayoutOptionsState.addWidget(self.labelGroupsIndex, 0, Qt.AlignLeft)
 
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
 
         self.horizontalLayoutOptionsState.addItem(self.horizontalSpacer)
 
         self.frameButtons = QFrame(Form)
         self.frameButtons.setObjectName(u"frameButtons")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
         sizePolicy1.setHeightForWidth(self.frameButtons.sizePolicy().hasHeightForWidth())
         self.frameButtons.setSizePolicy(sizePolicy1)
-        self.frameButtons.setMaximumSize(QSize(100, 16777215))
+        self.frameButtons.setMaximumSize(QSize(120, 16777215))
         self.frameButtons.setFrameShape(QFrame.NoFrame)
         self.frameButtons.setFrameShadow(QFrame.Raised)
 
@@ -147,12 +147,11 @@ class Ui_Form(object):
         self.horizontalLayout_3.addLayout(self.horizontalLayoutOptions)
 
         self.splitter.addWidget(self.frameOptions)
-        self.plainTextEditSample = QPlainTextEdit(self.splitter)
-        self.plainTextEditSample.setObjectName(u"plainTextEditSample")
-        self.plainTextEditSample.setMinimumSize(QSize(0, 258))
-        self.plainTextEditSample.setTabChangesFocus(True)
-        self.plainTextEditSample.setReadOnly(False)
-        self.splitter.addWidget(self.plainTextEditSample)
+        self.textEditSample = QTextEdit(self.splitter)
+        self.textEditSample.setObjectName(u"textEditSample")
+        self.textEditSample.setMinimumSize(QSize(0, 258))
+        self.textEditSample.setTabChangesFocus(True)
+        self.splitter.addWidget(self.textEditSample)
 
         self.gridLayout.addWidget(self.splitter, 0, 0, 1, 1)
 
@@ -175,6 +174,6 @@ class Ui_Form(object):
         self.checkBoxMultiline.setText(QCoreApplication.translate("Form", u"MULTILINE", None))
         self.checkBoxDotAll.setText(QCoreApplication.translate("Form", u"DOTALL", None))
         self.checkBoxVerbose.setText(QCoreApplication.translate("Form", u"VERBOSE", None))
-        self.plainTextEditSample.setPlaceholderText(QCoreApplication.translate("Form", u"Enter or paste sample text here, or load from file", None))
+        self.textEditSample.setPlaceholderText(QCoreApplication.translate("Form", u"Enter or paste sample text here, or load from file", None))
     # retranslateUi
 
