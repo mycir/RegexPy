@@ -362,6 +362,14 @@ class RegexPy(QWidget):
                 lambda: self.navigate(Move.NextGroup),
                 Qt.ShortcutContext.WindowShortcut,
             ),
+            QShortcut(
+                Qt.Key_Escape,
+                self,
+                lambda: self.enable_navigation(False)
+                if self.navigation_enabled
+                else False,
+                Qt.ShortcutContext.WindowShortcut,
+            ),
         ]
         for s in self.shortcuts:
             s.setEnabled(False)
@@ -499,6 +507,7 @@ class RegexPy(QWidget):
             if len(self.expression.capturing):
                 self.shortcuts[3].setEnabled(True)
                 self.shortcuts[4].setEnabled(True)
+                self.shortcuts[5].setEnabled(True)
             self.hamburger_button.setEnabled(False)
         else:
             self.navigation_enabled = False
@@ -663,11 +672,6 @@ class RegexPy(QWidget):
                 ):
                     widget.insertPlainText("\t")
                     return True
-            elif (
-                event.key() == Qt.Key_Escape
-                and widget is self.ui.textEditSample
-            ):
-                self.enable_navigation(False)
             elif event.key() not in (Qt.Key_Tab, Qt.Key_Backtab):
                 if (
                     widget
