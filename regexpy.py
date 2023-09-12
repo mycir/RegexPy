@@ -197,6 +197,7 @@ class RegexPy(QWidget):
             QWidget, "qt_scrollarea_vcontainer"
         )
         self.scrollbar = vc.findChild(QScrollBar)
+        self.ui.textEditSample.setAcceptRichText(False)
         self.sample_doc = QTextDocument(self.ui.textEditSample)
         self.ui.textEditSample.setDocument(self.sample_doc)
         self.ui.textEditSample.textChanged.connect(self.on_sample_changed)
@@ -541,19 +542,19 @@ class RegexPy(QWidget):
                 is_valid = True
             except re.error:
                 is_valid = False
+            if is_valid:
+                c = self.colours.regex_valid.name()
+                self.expression = Expression(self.pattern)
+                self.menu.actions()[3].setEnabled(True)
+                self.search_button.setEnabled(True)
+            else:
+                c = self.colours.regex_invalid.name()
+                self.menu.actions()[3].setEnabled(False)
+                self.search_button.setEnabled(False)
+            ss = f"QPlainTextEdit {{ color: {c}; }}"
+            self.ui.plainTextEditRegex.setStyleSheet(ss)
         else:
-            is_valid = False
-        if is_valid:
-            c = self.colours.regex_valid.name()
-            self.expression = Expression(self.pattern)
-            self.menu.actions()[3].setEnabled(True)
-            self.search_button.setEnabled(True)
-        else:
-            c = self.colours.regex_invalid.name()
-            self.menu.actions()[3].setEnabled(False)
-            self.search_button.setEnabled(False)
-        ss = f"QPlainTextEdit {{ color: {c}; }}"
-        self.ui.plainTextEditRegex.setStyleSheet(ss)
+            self.ui.plainTextEditRegex.setStyleSheet(None)
         if self.navigation_enabled:
             self.enable_navigation(False)
         self.set_labels_visible(False)
