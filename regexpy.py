@@ -291,7 +291,8 @@ class RegexPy(QWidget):
             </svg>
         """
         flag_btn = SvgButton(svg_flag)
-        flag_btn.setToolTip("Show/hide options flags")
+        flag_btn.setToolTip("Show/hide regex flag options")
+        flag_btn.setShortcut("Alt+F")
         flag_btn.setCheckable(True)
         flag_btn.setChecked(True)
         flag_btn.clicked.connect(
@@ -316,6 +317,7 @@ class RegexPy(QWidget):
         buttons_layout.addWidget(marker_btn, 0, Qt.AlignRight | Qt.AlignVCenter)
         hamburger_btn = SvgButton(svg_hamburger)
         hamburger_btn.setToolTip("Menu: Load sample, load RE")
+        hamburger_btn.setShortcut("Alt+M")
         hamburger_btn.setStyleSheet(
             "QToolButton::menu-indicator { image: none; }"
         )
@@ -589,11 +591,14 @@ class RegexPy(QWidget):
         self.ui.plainTextEditRegex.setTextCursor(tc)
 
     def colour_text(
-        self, edit, foreground, background=None, start=None, end=None
+        self, start, end, foreground, background, underline=False
     ):
-        cursor = edit.textCursor()
+        cursor = self.ui.textEditSample.textCursor()
         cf = QTextCharFormat()
         cf.setForeground(foreground)
+        if underline:
+            cf.setUnderlineColor(self.colours.match_background)
+            cf.setUnderlineStyle(QTextCharFormat.SingleUnderline)
         cursor.setPosition(start, QTextCursor.MoveMode.MoveAnchor)
         bgc = cursor.charFormat().background().color()
         if background:
@@ -607,20 +612,27 @@ class RegexPy(QWidget):
         self.match_lines = []
         for m in matches:
             self.colour_text(
-                self.ui.textEditSample,
-                self.colours.match_foreground,
-                self.colours.match_background,
                 m.start,
                 m.end,
+                self.colours.match_foreground,
+                self.colours.match_background,
             )
+            m_len = m.start - m.end
+            g_total = 0
+            for g in m.groups:
+                g_total += g.start - g.end
+            if g_total == m_len:
+                underline = True
+            else:
+                underline = False
             for g in m.groups:
                 if g.end > g.start:
                     self.colour_text(
-                        self.ui.textEditSample,
-                        self.colours.group_foreground,
-                        self.colours.group_background,
                         g.start,
                         g.end,
+                        self.colours.group_foreground,
+                        self.colours.group_background,
+                        underline
                     )
             app.processEvents()
             self.match_lines.append(self.get_line_at_position(m.start))
