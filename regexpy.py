@@ -3,6 +3,7 @@
 import configparser
 import os
 import re
+import sys
 from collections import namedtuple
 from dataclasses import dataclass
 from enum import auto
@@ -216,6 +217,7 @@ class RegexPy(QWidget):
         self.ui.plainTextEditRegex.viewport().installEventFilter(self)
         self.navigation_enabled = False
         self.markers_enabled = False
+        self.cwd = self.get_cwd()
         self.load_config()
         if self.ui.plainTextEditRegex.toPlainText() > "":
             self.validate()
@@ -377,6 +379,14 @@ class RegexPy(QWidget):
         for s in self.shortcuts:
             s.setEnabled(False)
 
+    def get_cwd(self):
+        # if running as a pyinstaller "--onefile"
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            cwd = os.path.realpath(os.path.dirname(sys.executable))
+        else:
+            cwd = os.path.realpath(os.path.dirname(__file__))
+        return cwd
+
     def set_skeleton_config(self, configparser):
         if not configparser.has_section("Flags"):
             configparser.add_section("Flags")
@@ -390,9 +400,8 @@ class RegexPy(QWidget):
         cp.optionxform = str
         self.set_skeleton_config(cp)
         self.configparser = cp
-        dir = os.path.realpath(os.path.dirname(__file__))
         try:
-            cp.read_file(open(f"{dir}/regexpy.conf"))
+            cp.read_file(open(f"{self.cwd}/regexpy.conf"))
             if cp.has_section("Colours"):
                 colours = cp.items("Colours")
                 for k, v in colours:
@@ -479,9 +488,8 @@ class RegexPy(QWidget):
             self.configparser.set("SampleFile", "filename", fn)
 
     def closeEvent(self, event):
-        dir = os.path.realpath(os.path.dirname(__file__))
         self.save_flags()
-        self.configparser.write(open(f"{dir}/regexpy.conf", mode="w"))
+        self.configparser.write(open(f"{self.cwd}/regexpy.conf", mode="w"))
 
     def enable_navigation(self, enabled=False):
         if enabled:
