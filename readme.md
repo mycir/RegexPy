@@ -42,3 +42,13 @@ Last saved regex, last loaded/saved sample and flags are reloaded on restart.
 ## Dependencies
 
 Python >= 3.7, PySide6, Qt >= 6.4
+
+(Only required when running as a Python script, see release notes below.)
+
+## Releases
+
+These are standalone executables that include all necessary libraries.<br/>Furthermore, they do not require Python to be installed.
+
+As of September 2023, the only provided releases are for X11 Linux-x64 systems.
+
+(Windows and macOS versions may follow, as time permits.)
