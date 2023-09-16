@@ -7,6 +7,7 @@ import sys
 from collections import namedtuple
 from dataclasses import dataclass
 from enum import auto
+from shutil import copy
 from time import strftime
 from traceback import print_exc
 
@@ -381,8 +382,11 @@ class RegexPy(QWidget):
 
     def get_cwd(self):
         # if running as a pyinstaller "--onefile"
-        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
             cwd = os.path.realpath(os.path.dirname(sys.executable))
+            cf = "regexpy.conf"
+            if not os.path.exists(f"{cwd}/{cf}"):
+                copy(f"{sys._MEIPASS}/{cf}", f"{cwd}/{cf}")
         else:
             cwd = os.path.realpath(os.path.dirname(__file__))
         return cwd
@@ -598,9 +602,7 @@ class RegexPy(QWidget):
         tc.clearSelection()
         self.ui.plainTextEditRegex.setTextCursor(tc)
 
-    def colour_text(
-        self, start, end, foreground, background, underline=False
-    ):
+    def colour_text(self, start, end, foreground, background, underline=False):
         cursor = self.ui.textEditSample.textCursor()
         cf = QTextCharFormat()
         cf.setForeground(foreground)
@@ -640,7 +642,7 @@ class RegexPy(QWidget):
                         g.end,
                         self.colours.group_foreground,
                         self.colours.group_background,
-                        underline
+                        underline,
                     )
             app.processEvents()
             self.match_lines.append(self.get_line_at_position(m.start))
@@ -701,10 +703,15 @@ class RegexPy(QWidget):
                 ):
                     return True
         elif widget is self.ui.textEditSample:
-            if event.type() is QEvent.ToolTip:
-                cfp = self.ui.textEditSample.cursorForPosition(event.pos())
-                bgc = cfp.charFormat().background().color()
-                if cfp.atEnd() or bgc.black() == 255:
+            if event.type() is QEvent.ToolTip and self.navigation_enabled:
+                pos = event.pos()
+                cfp = self.ui.textEditSample.cursorForPosition(pos)
+                cr1 = self.ui.textEditSample.cursorRect(cfp)
+                if pos.x() > cr1.x():
+                    cfp.movePosition(QTextCursor.NextCharacter)
+                cr2 = self.ui.textEditSample.cursorRect(cfp)
+                bbs = cfp.charFormat().background().style()
+                if cr2.y() > cr1.y() or bbs == Qt.NoBrush:
                     self.ui.labelMatch.hide()
                     self.ui.labelGroups.hide()
                     self.ui.labelGroupsIndex.hide()
