@@ -23,6 +23,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import (
     QColor,
     QKeyEvent,
+    QKeySequence,
     QPainter,
     QPen,
     QShortcut,
@@ -183,7 +184,7 @@ class RegexPy(QWidget):
         super().__init__()
         self.ui = Ui_Form()
         self.ui.setupUi(self)
-        self.ui.splitter.setSizes([40, 30, 490])
+        self.ui.splitter.setSizes([2, 2, 25])
         self.ui.splitter.setCollapsible(0, False)
         self.ui.splitter.setCollapsible(1, False)
         self.ui.splitter.setCollapsible(2, False)
@@ -295,7 +296,7 @@ class RegexPy(QWidget):
         """
         flag_btn = SvgButton(svg_flag)
         flag_btn.setToolTip("Show/hide regex flag options")
-        flag_btn.setShortcut("Alt+F")
+        flag_btn.setShortcut(QKeySequence(Qt.ALT | Qt.Key_F))
         flag_btn.setCheckable(True)
         flag_btn.setChecked(True)
         flag_btn.clicked.connect(
@@ -306,30 +307,42 @@ class RegexPy(QWidget):
         buttons_layout.addWidget(flag_btn, 0, Qt.AlignRight | Qt.AlignVCenter)
         search_btn = SvgButton(svg_search)
         search_btn.setToolTip("Search sample text for RE matches")
-        search_btn.setShortcut("Ctrl+T")
+        search_btn.setShortcut(QKeySequence(Qt.ALT | Qt.Key_T))
         search_btn.clicked.connect(self.test_pattern)
         search_btn.setEnabled(False)
         self.search_button = search_btn
         buttons_layout.addWidget(search_btn, 0, Qt.AlignRight | Qt.AlignVCenter)
         marker_btn = SvgButton(svg_marker)
         marker_btn.setToolTip("Show/hide scrollbar markers")
-        marker_btn.setShortcut("Ctrl+M")
+        marker_btn.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_M))
         marker_btn.clicked.connect(self.toggle_markers)
         marker_btn.setEnabled(False)
         self.marker_button = marker_btn
         buttons_layout.addWidget(marker_btn, 0, Qt.AlignRight | Qt.AlignVCenter)
         hamburger_btn = SvgButton(svg_hamburger)
         hamburger_btn.setToolTip("Menu: Load sample, load RE")
-        hamburger_btn.setShortcut("Alt+M")
+        hamburger_btn.setShortcut(QKeySequence(Qt.ALT | Qt.Key_M))
         hamburger_btn.setStyleSheet(
             "QToolButton::menu-indicator { image: none; }"
         )
         self.menu = QMenu(hamburger_btn)
-        self.menu.addAction("Load RE", self.load_file, "Ctrl+O")
-        self.menu.addAction("Load sample", self.load_file, "Ctrl+Shift+O")
+        self.menu.addAction(
+            "Load RE", self.load_file, QKeySequence(Qt.CTRL | Qt.Key_O)
+        )
+        self.menu.addAction(
+            "Load sample",
+            self.load_file,
+            QKeySequence(Qt.CTRL | Qt.SHIFT | Qt.Key_O),
+        )
         self.menu.addSeparator()
-        self.menu.addAction("Save RE", self.save_regex, "Ctrl+S")
-        self.menu.addAction("Save sample", self.save_sample, "Ctrl+Shift+S")
+        self.menu.addAction(
+            "Save RE", self.save_regex, QKeySequence(Qt.CTRL | Qt.Key_S)
+        )
+        self.menu.addAction(
+            "Save sample",
+            self.save_sample,
+            QKeySequence(Qt.CTRL | Qt.SHIFT | Qt.Key_S),
+        )
         hamburger_btn.set_menu(self.menu)
         self.hamburger_button = hamburger_btn
         buttons_layout.addWidget(
@@ -339,31 +352,31 @@ class RegexPy(QWidget):
     def add_shortcuts(self):
         self.shortcuts = [
             QShortcut(
-                "Alt+Left",
+                QKeySequence.MoveToPreviousWord,
                 self,
                 lambda: self.navigate(Move.PreviousMatch),
                 Qt.ShortcutContext.WindowShortcut,
             ),
             QShortcut(
-                "Alt+Right",
+                QKeySequence.MoveToNextWord,
                 self,
                 lambda: self.navigate(Move.NextMatch),
                 Qt.ShortcutContext.WindowShortcut,
             ),
             QShortcut(
-                "Alt+A",
+                QKeySequence(Qt.ALT | Qt.Key_A),
                 self,
                 lambda: self.navigate(Move.ToAnchor),
                 Qt.ShortcutContext.WindowShortcut,
             ),
             QShortcut(
-                "Ctrl+Alt+Left",
+                QKeySequence.MoveToPreviousChar,
                 self,
                 lambda: self.navigate(Move.PreviousGroup),
                 Qt.ShortcutContext.WindowShortcut,
             ),
             QShortcut(
-                "Ctrl+Alt+Right",
+                QKeySequence.MoveToNextChar,
                 self,
                 lambda: self.navigate(Move.NextGroup),
                 Qt.ShortcutContext.WindowShortcut,
@@ -686,22 +699,21 @@ class RegexPy(QWidget):
     def eventFilter(self, widget, event):
         if event.type() is QKeyEvent.KeyPress:
             if (
-                event.key() == Qt.Key_Tab
-                and event.modifiers() == Qt.KeyboardModifier.ControlModifier
-            ):
-                if widget in (
+                widget
+                in (
                     self.ui.plainTextEditRegex,
                     self.ui.textEditSample,
-                ):
-                    widget.insertPlainText("\t")
-                    return True
-            elif event.key() not in (Qt.Key_Tab, Qt.Key_Backtab):
-                if (
-                    widget
-                    in (self.ui.textEditSample, self.ui.plainTextEditRegex)
-                    and widget.isReadOnly()
-                ):
-                    return True
+                )
+                and event.key() == Qt.Key_Tab
+            ):
+                if not widget.isReadOnly():
+                    em = event.modifiers()
+                    if (
+                        app.platformName() == "cocoa"
+                        and em == Qt.KeyboardModifier.AltModifier
+                    ) or em == Qt.KeyboardModifier.ControlModifier:
+                        widget.insertPlainText("\t")
+                        return True
         elif widget is self.ui.textEditSample:
             if event.type() is QEvent.ToolTip and self.navigation_enabled:
                 pos = event.pos()
@@ -759,13 +771,16 @@ class RegexPy(QWidget):
         qp.setBrush(self.icon_colour)
         qp.setOpacity(0.25)
         btn_h = self.scrollbar.width() + 4
+        if app.platformName() == "cocoa":
+            m = 1
+        else:
+            m = 2
         for ml in self.match_lines:
             f = ml / self.lines
-            trk_h = self.scrollbar.height() - (btn_h * 4)
-            trk_pos = trk_h * f
+            trk_h = self.scrollbar.height() - (btn_h * 2 * m)
+            trk_pos = round((trk_h * f) + (btn_h * m))
             mw = round(self.scrollbar.width() / 3)
-            y = round(trk_pos + (btn_h * 2))
-            qp.drawRect(mw, y, mw, 3)
+            qp.drawRect(mw, trk_pos, mw, 3)
 
     def toggle_markers(self):
         self.markers_enabled = not self.markers_enabled

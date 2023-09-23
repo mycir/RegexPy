@@ -1,37 +1,36 @@
 # RegexPy
 
-Yet another playground for testing <ins>Python</ins> flavoured regular expressions.
+Yet another playground for testing <ins>Python</ins> flavoured regular expressions.<br />
+[Releases](https://github.com/mycir/RegexPy/releases) are available for Linux, Windows and MacOS.
 
 ![Screenshot](./screenshots/regexpy.gif)
 
 ### Shortcuts and behaviour
 
-Ctrl+O:&emsp;&emsp;&emsp;&emsp;Load sample text<br/>
-Ctrl+S:&emsp;&emsp;&emsp;&emsp; Save sample text<br/>
-Ctrl+Shift+O:&emsp; Load regex<br/>
-Ctrl+Shift+S:&emsp;&ensp;Save regex<br/>
-
-Alt+F/Flag button:&emsp;&emsp;&emsp;Hide/Show regex flag options<br/>
-Ctrl + T/Search button:&emsp;Test the regular expression on sample text<br/> 
-Ctrl+M/Marker button:&emsp;Toggle scrollbar match position markers<br/>
-Alt+M/Menu button:&emsp;&emsp; Activate load/save menu<br/>
+| Linux & Windows | MacOS | Button | Action |
+| --- | --- | --- | --- |
+| Ctrl+O | Command+O | | Load sample text |
+| Ctrl+S | Command+S | | Save sample text |
+| Ctrl+Shift+O | Command+Shift+O | | Load regex |
+| Ctrl+Shift+S | Command+Shift+S | | Save regex |
+| Alt+F | Option+F | Flag | Hide/Show regex flag options |
+| Alt+T | Option+T | Search | Test the regular expression on sample text |
+| Ctrl+M | Command+M | Marker | Toggle scrollbar match position markers |
+| Alt+M | Option+M | Menu | Activate load/save menu |
+| Ctrl+Right | Option+Right | | Next Match |
+| Ctrl+Left | Option+Left | | Previous Match |
+| Right | Right | | Next Group |
+| Left | Left | | Previous Group |
+| Alt+A | Option+A | | Return to anchor<br />(after hovering over another match/group) |
+| Escape/mouse click | Escape/mouse click |  | Exit navigation mode |
+| Tab/Shift+Tab | Tab/Shift+Tab | | Move focus |
+| Ctrl+Tab | Option+Tab | | Type a tab character in regex or sample |
 
 Hover over matches/groups to identify their indexes.
 
-Alt+Right:&emsp;&emsp;&emsp; Next Match<br/>
-Alt+Left:&emsp;&emsp;&emsp;&emsp;Previous Match<br/>
-Ctrl+Alt+Right:&emsp;Next Group<br/>
-Ctrl+Alt+Left:&emsp;&ensp;&nbsp;Previous Group<br/>
-Alt+A:&emsp;&emsp;&emsp;&emsp;&emsp; Return to anchor (after hovering over another match/group)<br/>
-
-
-Escape or mouse click exit navigation mode.
-
-Tab/Shift+Tab move focus (to enter a tab character use Ctrl+Tab).
+Last saved regex, last loaded/saved sample and flags are reloaded on restart.
 
 Edit the sample [config](./regexpy.conf) file to suit, e.g. highlighting colours.
-
-Last saved regex, last loaded/saved sample and flags are reloaded on restart.
 
 ### Highlighting
 
@@ -43,12 +42,10 @@ Last saved regex, last loaded/saved sample and flags are reloaded on restart.
 
 Python >= 3.7, PySide6, Qt >= 6.4
 
-(Only required when running as a Python script, see release notes below.)
+(Only required when run as a Python script, see release notes below.)
 
 ## Releases
 
-These are standalone executables that include all necessary libraries.<br/>Furthermore, they do not require Python to be installed.
+These are standalone 'executables' that include all necessary libraries. Furthermore, they do not require Python to be installed.
 
-As of September 2023, the only provided releases are for X11 Linux-x64 systems.
-
-(Windows and macOS versions may follow, as time permits.)
+Note: They are [pyinstaller](https://github.com/pyinstaller/pyinstaller) generated self extracting archives. By default they launch from a terminal window, to suppress this<br />use the --noconsole option.

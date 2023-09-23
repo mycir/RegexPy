@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'regexpy.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.4.0
+## Created by: Qt User Interface Compiler version 6.5.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -28,8 +28,8 @@ class Ui_Form(object):
         self.gridLayout = QGridLayout(Form)
         self.gridLayout.setObjectName(u"gridLayout")
         self.gridLayout.setContentsMargins(-1, -1, -1, 7)
-        self.horizontalLayoutOptionsState = QHBoxLayout()
-        self.horizontalLayoutOptionsState.setObjectName(u"horizontalLayoutOptionsState")
+        self.horizontalLayoutStatus = QHBoxLayout()
+        self.horizontalLayoutStatus.setObjectName(u"horizontalLayoutStatus")
         self.labelMatches = QLabel(Form)
         self.labelMatches.setObjectName(u"labelMatches")
         sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
@@ -39,19 +39,19 @@ class Ui_Form(object):
         self.labelMatches.setSizePolicy(sizePolicy)
         self.labelMatches.setMaximumSize(QSize(65, 20))
 
-        self.horizontalLayoutOptionsState.addWidget(self.labelMatches)
+        self.horizontalLayoutStatus.addWidget(self.labelMatches)
 
         self.labelMatchesCount = QLabel(Form)
         self.labelMatchesCount.setObjectName(u"labelMatchesCount")
         sizePolicy.setHeightForWidth(self.labelMatchesCount.sizePolicy().hasHeightForWidth())
         self.labelMatchesCount.setSizePolicy(sizePolicy)
 
-        self.horizontalLayoutOptionsState.addWidget(self.labelMatchesCount)
+        self.horizontalLayoutStatus.addWidget(self.labelMatchesCount)
 
         self.labelMatch = QLabel(Form)
         self.labelMatch.setObjectName(u"labelMatch")
 
-        self.horizontalLayoutOptionsState.addWidget(self.labelMatch)
+        self.horizontalLayoutStatus.addWidget(self.labelMatch)
 
         self.labelGroups = QLabel(Form)
         self.labelGroups.setObjectName(u"labelGroups")
@@ -60,18 +60,18 @@ class Ui_Form(object):
         self.labelGroups.setMinimumSize(QSize(0, 0))
         self.labelGroups.setMaximumSize(QSize(60, 16777215))
 
-        self.horizontalLayoutOptionsState.addWidget(self.labelGroups)
+        self.horizontalLayoutStatus.addWidget(self.labelGroups)
 
         self.labelGroupsIndex = QLabel(Form)
         self.labelGroupsIndex.setObjectName(u"labelGroupsIndex")
         sizePolicy.setHeightForWidth(self.labelGroupsIndex.sizePolicy().hasHeightForWidth())
         self.labelGroupsIndex.setSizePolicy(sizePolicy)
 
-        self.horizontalLayoutOptionsState.addWidget(self.labelGroupsIndex, 0, Qt.AlignLeft)
+        self.horizontalLayoutStatus.addWidget(self.labelGroupsIndex, 0, Qt.AlignLeft)
 
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
 
-        self.horizontalLayoutOptionsState.addItem(self.horizontalSpacer)
+        self.horizontalLayoutStatus.addItem(self.horizontalSpacer)
 
         self.frameButtons = QFrame(Form)
         self.frameButtons.setObjectName(u"frameButtons")
@@ -84,10 +84,10 @@ class Ui_Form(object):
         self.frameButtons.setFrameShape(QFrame.NoFrame)
         self.frameButtons.setFrameShadow(QFrame.Raised)
 
-        self.horizontalLayoutOptionsState.addWidget(self.frameButtons)
+        self.horizontalLayoutStatus.addWidget(self.frameButtons)
 
 
-        self.gridLayout.addLayout(self.horizontalLayoutOptionsState, 1, 0, 1, 1)
+        self.gridLayout.addLayout(self.horizontalLayoutStatus, 1, 0, 1, 1)
 
         self.splitter = QSplitter(Form)
         self.splitter.setObjectName(u"splitter")
@@ -108,15 +108,21 @@ class Ui_Form(object):
         self.splitter.addWidget(self.plainTextEditRegex)
         self.frameOptions = QFrame(self.splitter)
         self.frameOptions.setObjectName(u"frameOptions")
-        sizePolicy2.setHeightForWidth(self.frameOptions.sizePolicy().hasHeightForWidth())
-        self.frameOptions.setSizePolicy(sizePolicy2)
-        self.frameOptions.setMinimumSize(QSize(0, 32))
-        self.frameOptions.setMaximumSize(QSize(16777215, 32))
+        sizePolicy3 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.frameOptions.sizePolicy().hasHeightForWidth())
+        self.frameOptions.setSizePolicy(sizePolicy3)
+        self.frameOptions.setMinimumSize(QSize(0, 42))
+        self.frameOptions.setMaximumSize(QSize(16777215, 42))
         self.frameOptions.setFrameShape(QFrame.StyledPanel)
         self.frameOptions.setFrameShadow(QFrame.Raised)
         self.horizontalLayout_3 = QHBoxLayout(self.frameOptions)
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
         self.horizontalLayoutOptions = QHBoxLayout()
+#ifndef Q_OS_MAC
+        self.horizontalLayoutOptions.setSpacing(-1)
+#endif
         self.horizontalLayoutOptions.setObjectName(u"horizontalLayoutOptions")
         self.checkBoxAscii = QCheckBox(self.frameOptions)
         self.checkBoxAscii.setObjectName(u"checkBoxAscii")
@@ -140,6 +146,7 @@ class Ui_Form(object):
 
         self.checkBoxVerbose = QCheckBox(self.frameOptions)
         self.checkBoxVerbose.setObjectName(u"checkBoxVerbose")
+        self.checkBoxVerbose.setMinimumSize(QSize(0, 0))
 
         self.horizontalLayoutOptions.addWidget(self.checkBoxVerbose, 0, Qt.AlignHCenter|Qt.AlignVCenter)
 
@@ -155,6 +162,12 @@ class Ui_Form(object):
 
         self.gridLayout.addWidget(self.splitter, 0, 0, 1, 1)
 
+        QWidget.setTabOrder(self.plainTextEditRegex, self.checkBoxAscii)
+        QWidget.setTabOrder(self.checkBoxAscii, self.checkBoxIgnoreCase)
+        QWidget.setTabOrder(self.checkBoxIgnoreCase, self.checkBoxMultiline)
+        QWidget.setTabOrder(self.checkBoxMultiline, self.checkBoxDotAll)
+        QWidget.setTabOrder(self.checkBoxDotAll, self.checkBoxVerbose)
+        QWidget.setTabOrder(self.checkBoxVerbose, self.textEditSample)
 
         self.retranslateUi(Form)
 
