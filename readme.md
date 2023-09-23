@@ -48,4 +48,4 @@ Python >= 3.7, PySide6, Qt >= 6.4
 
 These are standalone 'executables' that include all necessary libraries. Furthermore, they do not require Python to be installed.
 
-Note: They are [pyinstaller](https://github.com/pyinstaller/pyinstaller) generated self extracting archives. By default they launch from a terminal window, to suppress this use the --noconsole option.
+Note: They are [pyinstaller](https://github.com/pyinstaller/pyinstaller) generated self extracting archives. By default they launch from a terminal window, to suppress this<br />use the --noconsole option.
